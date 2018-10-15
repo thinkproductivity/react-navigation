@@ -31,5 +31,9 @@ export default function withNavigation(Component) {
     }
   }
 
-  return hoistStatics(ComponentWithNavigation, Component);
+  const ComponentWithNavigationAndForwardRef = React.forwardRef((props, ref) => (
+    <ComponentWithNavigation {...props} onRef={props.onRef || ref} />
+  ));  
+
+  return hoistStatics(ComponentWithNavigationAndForwardRef, Component);
 }
