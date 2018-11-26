@@ -9,10 +9,10 @@ import {
   View,
 } from 'react-native';
 import {
+  createAppContainer,
   Transitioner,
   SafeAreaView,
   StackRouter,
-  createNavigationContainer,
   createNavigator,
 } from 'react-navigation';
 import SampleText from './SampleText';
@@ -100,7 +100,7 @@ const CustomRouter = StackRouter({
   Settings: { screen: MySettingsScreen },
 });
 
-const CustomTransitioner = createNavigationContainer(
+const CustomTransitioner = createAppContainer(
   createNavigator(CustomNavigationView, CustomRouter, {})
 );
 

@@ -143,6 +143,14 @@ declare module 'react-navigation' {
     +type: 'Navigation/TOGGLE_DRAWER',
     +key?: string,
   |};
+  declare export type NavigationDrawerOpenedAction = {|
+    +type: 'Navigation/DRAWER_OPENED',
+    +key?: string,
+  |};
+  declare export type NavigationDrawerClosedAction = {|
+    +type: 'Navigation/DRAWER_CLOSED',
+    +key?: string,
+  |};
 
   declare export type NavigationAction =
     | NavigationBackAction
@@ -157,7 +165,9 @@ declare module 'react-navigation' {
     | NavigationCompleteTransitionAction
     | NavigationOpenDrawerAction
     | NavigationCloseDrawerAction
-    | NavigationToggleDrawerAction;
+    | NavigationToggleDrawerAction
+    | NavigationDrawerOpenedAction
+    | NavigationDrawerClosedAction;
 
   /**
    * NavigationState is a tree of routes for a single navigator, where each
@@ -283,7 +293,7 @@ declare module 'react-navigation' {
 
   declare export type NavigationComponent =
     | NavigationScreenComponent<NavigationRoute, *, *>
-    | NavigationContainer<*, *, *>;
+    | NavigationNavigator<*, *, *>;
 
   declare interface withOptionalNavigationOptions<Options> {
     navigationOptions?: NavigationScreenConfig<Options>;
@@ -307,7 +317,7 @@ declare module 'react-navigation' {
     State: NavigationState,
     Options: {},
     Props: {}
-  > = React$ComponentType<{
+  > = React$StatelessFunctionalComponent<{
     ...Props,
     ...NavigationNavigatorProps<Options, State>,
   }> &
@@ -386,7 +396,7 @@ declare module 'react-navigation' {
     initialRouteName?: string,
     initialRouteParams?: NavigationParams,
     paths?: NavigationPathsConfig,
-    navigationOptions?: NavigationScreenConfig<*>,
+    defaultNavigationOptions?: NavigationScreenConfig<*>,
     initialRouteKey?: string,
   |};
 
@@ -394,10 +404,18 @@ declare module 'react-navigation' {
     mode?: 'card' | 'modal',
     headerMode?: HeaderMode,
     headerTransitionPreset?: 'fade-in-place' | 'uikit',
+    headerLayoutPreset?: 'left' | 'center',
+    headerBackTitleVisible?: boolean,
     cardStyle?: ViewStyleProp,
-    transitionConfig?: () => TransitionConfig,
+    transitionConfig?: (
+      transitionProps: NavigationTransitionProps,
+      prevTransitionProps: ?NavigationTransitionProps,
+      isModal: boolean
+    ) => TransitionConfig,
     onTransitionStart?: () => void,
     onTransitionEnd?: () => void,
+    transparentCard?: boolean,
+    disableKeyboardHandling?: boolean,
   |};
 
   declare export type StackNavigatorConfig = {|
@@ -413,7 +431,7 @@ declare module 'react-navigation' {
     initialRouteName?: string,
     initialRouteParams?: NavigationParams,
     paths?: NavigationPathsConfig,
-    navigationOptions?: NavigationScreenConfig<*>,
+    defaultNavigationOptions?: NavigationScreenConfig<*>,
     order?: Array<string>,
     backBehavior?: 'none' | 'initialRoute', // defaults to `'none'`
     resetOnBlur?: boolean, // defaults to `true`
@@ -427,7 +445,7 @@ declare module 'react-navigation' {
     initialRouteName?: string,
     initialRouteParams?: NavigationParams,
     paths?: NavigationPathsConfig,
-    navigationOptions?: NavigationScreenConfig<*>,
+    defaultNavigationOptions?: NavigationScreenConfig<*>,
     // todo: type these as the real route names rather than 'string'
     order?: Array<string>,
     // Does the back button cause the router to switch to the initial tab
@@ -515,7 +533,29 @@ declare module 'react-navigation' {
       eventName: string,
       callback: NavigationEventCallback
     ) => NavigationEventSubscription,
-    getParam: (paramName: string, fallback?: any) => any,
+    getParam: <ParamName: string>(
+      paramName: ParamName,
+      fallback?: $ElementType<
+        $PropertyType<
+          {|
+            ...{| params: {| [ParamName]: void |} |},
+            ...$Exact<S>,
+          |},
+          'params'
+        >,
+        ParamName
+      >
+    ) => $ElementType<
+      $PropertyType<
+        {|
+          ...{| params: {| [ParamName]: void |} |},
+          ...$Exact<S>,
+        |},
+        'params'
+      >,
+      ParamName
+    >,
+    dangerouslyGetParent: () => NavigationScreenProp<*>,
     isFocused: () => boolean,
     // Shared action creators that exist for all routers
     goBack: (routeKey?: ?string) => boolean,
@@ -721,6 +761,9 @@ declare module 'react-navigation' {
    * Now we type the actual exported module
    */
 
+  declare export function createAppContainer<S: NavigationState, O: {}>(
+    Component: NavigationNavigator<S, O, *>
+  ): NavigationContainer<S, O, *>;
   declare export function createNavigationContainer<S: NavigationState, O: {}>(
     Component: NavigationNavigator<S, O, *>
   ): NavigationContainer<S, O, *>;
@@ -799,7 +842,7 @@ declare module 'react-navigation' {
       actions: Array<NavigationNavigateAction>,
     }) => NavigationResetAction,
     replace: (payload: {
-      key: string,
+      key?: string,
       routeName: string,
       params?: NavigationParams,
       action?: NavigationNavigateAction,
@@ -813,6 +856,8 @@ declare module 'react-navigation' {
     OPEN_DRAWER: 'Navigation/OPEN_DRAWER',
     CLOSE_DRAWER: 'Navigation/CLOSE_DRAWER',
     TOGGLE_DRAWER: 'Navigation/TOGGLE_DRAWER',
+    DRAWER_OPENED: 'Navigation/DRAWER_OPENED',
+    DRAWER_CLOSED: 'Navigation/DRAWER_CLOSED',
 
     openDrawer: (payload: {
       key?: string,
@@ -850,11 +895,11 @@ declare module 'react-navigation' {
   declare export function StackNavigator(
     routeConfigMap: NavigationRouteConfigMap,
     stackConfig?: StackNavigatorConfig
-  ): NavigationContainer<*, *, *>;
+  ): NavigationNavigator<*, *, *>;
   declare export function createStackNavigator(
     routeConfigMap: NavigationRouteConfigMap,
     stackConfig?: StackNavigatorConfig
-  ): NavigationContainer<*, *, *>;
+  ): NavigationNavigator<*, *, *>;
 
   declare type _TabViewConfig = {|
     tabBarComponent?: React$ElementType,
@@ -878,31 +923,31 @@ declare module 'react-navigation' {
   declare export function TabNavigator(
     routeConfigs: NavigationRouteConfigMap,
     config?: _TabNavigatorConfig
-  ): NavigationContainer<*, *, *>;
+  ): NavigationNavigator<*, *, *>;
   declare export function createTabNavigator(
     routeConfigs: NavigationRouteConfigMap,
     config?: _TabNavigatorConfig
-  ): NavigationContainer<*, *, *>;
+  ): NavigationNavigator<*, *, *>;
   /* TODO: fix the config for each of these tab navigator types */
   declare export function createBottomTabNavigator(
     routeConfigs: NavigationRouteConfigMap,
     config?: _TabNavigatorConfig
-  ): NavigationContainer<*, *, *>;
+  ): NavigationNavigator<*, *, *>;
   declare export function createMaterialTopTabNavigator(
     routeConfigs: NavigationRouteConfigMap,
     config?: _TabNavigatorConfig
-  ): NavigationContainer<*, *, *>;
+  ): NavigationNavigator<*, *, *>;
   declare type _SwitchNavigatorConfig = {|
     ...NavigationSwitchRouterConfig,
   |};
   declare export function SwitchNavigator(
     routeConfigs: NavigationRouteConfigMap,
     config?: _SwitchNavigatorConfig
-  ): NavigationContainer<*, *, *>;
+  ): NavigationNavigator<*, *, *>;
   declare export function createSwitchNavigator(
     routeConfigs: NavigationRouteConfigMap,
     config?: _SwitchNavigatorConfig
-  ): NavigationContainer<*, *, *>;
+  ): NavigationNavigator<*, *, *>;
 
   declare type _DrawerViewConfig = {|
     drawerLockMode?: 'unlocked' | 'locked-closed' | 'locked-open',
@@ -923,11 +968,11 @@ declare module 'react-navigation' {
   declare export function DrawerNavigator(
     routeConfigs: NavigationRouteConfigMap,
     config?: _DrawerNavigatorConfig
-  ): NavigationContainer<*, *, *>;
+  ): NavigationNavigator<*, *, *>;
   declare export function createDrawerNavigator(
     routeConfigs: NavigationRouteConfigMap,
     config?: _DrawerNavigatorConfig
-  ): NavigationContainer<*, *, *>;
+  ): NavigationNavigator<*, *, *>;
 
   declare export function StackRouter(
     routeConfigs: NavigationRouteConfigMap,
@@ -1183,6 +1228,6 @@ declare module 'react-navigation' {
     dispatch: NavigationDispatch,
     actionSubscribers: Set<NavigationEventCallback>,
     getScreenProps: () => {},
-    getCurrentNavigation: () => NavigationScreenProp<State>
+    getCurrentNavigation: () => ?NavigationScreenProp<State>
   ): NavigationScreenProp<State>;
 }

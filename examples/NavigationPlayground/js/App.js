@@ -11,12 +11,20 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   Text,
   StatusBar,
   View,
 } from 'react-native';
-import { SafeAreaView, createStackNavigator } from 'react-navigation';
+import {
+  RectButton,
+  NativeViewGestureHandler,
+} from 'react-native-gesture-handler';
+import {
+  createAppContainer,
+  SafeAreaView,
+  createStackNavigator,
+} from 'react-navigation';
+import { Assets as StackAssets } from 'react-navigation-stack';
 
 import CustomTabs from './CustomTabs';
 import CustomTransitioner from './CustomTransitioner';
@@ -34,10 +42,13 @@ import SimpleStack from './SimpleStack';
 import StackWithHeaderPreset from './StackWithHeaderPreset';
 import StackWithTranslucentHeader from './StackWithTranslucentHeader';
 import SimpleTabs from './SimpleTabs';
+import CustomTabUI from './CustomTabUI';
 import SwitchWithStacks from './SwitchWithStacks';
 import TabsWithNavigationFocus from './TabsWithNavigationFocus';
 import TabsWithNavigationEvents from './TabsWithNavigationEvents';
 import KeyboardHandlingExample from './KeyboardHandlingExample';
+
+process.env.REACT_NAV_LOGGING = true;
 
 const ExampleInfo = {
   SimpleStack: {
@@ -137,6 +148,10 @@ const ExampleInfo = {
     description:
       'Demo automatic handling of keyboard showing/hiding inside StackNavigator',
   },
+  CustomTabUI: {
+    name: 'Custom Tabs UI',
+    description: 'Render additional views around a Tab navigator',
+  },
 };
 
 const ExampleRoutes = {
@@ -161,6 +176,7 @@ const ExampleRoutes = {
   ModalStack: ModalStack,
   StacksWithKeys: StacksWithKeys,
   StacksInTabs: StacksInTabs,
+  CustomTabUI: CustomTabUI,
   StacksOverTabs: StacksOverTabs,
   StacksOverTopTabs: StacksOverTopTabs,
   LinkStack: {
@@ -187,12 +203,7 @@ class MainScreen extends React.Component<any, State> {
   };
 
   componentDidMount() {
-    Asset.fromModule(
-      require('react-navigation/src/views/assets/back-icon-mask.png')
-    ).downloadAsync();
-    Asset.fromModule(
-      require('react-navigation/src/views/assets/back-icon.png')
-    ).downloadAsync();
+    Asset.loadAsync(StackAssets);
   }
 
   render() {
@@ -234,69 +245,72 @@ class MainScreen extends React.Component<any, State> {
 
     return (
       <View style={{ flex: 1 }}>
-        <Animated.ScrollView
-          style={{ flex: 1 }}
-          scrollEventThrottle={1}
-          onScroll={Animated.event(
-            [
-              {
-                nativeEvent: { contentOffset: { y: this.state.scrollY } },
-              },
-            ],
-            { useNativeDriver: true }
-          )}
-        >
-          <Animated.View
-            style={[
-              styles.backgroundUnderlay,
-              {
-                transform: [
-                  { scale: backgroundScale },
-                  { translateY: backgroundTranslateY },
-                ],
-              },
-            ]}
-          />
-          <Animated.View
-            style={{ opacity, transform: [{ scale }, { translateY }] }}
+        <NativeViewGestureHandler>
+          <Animated.ScrollView
+            style={{ flex: 1, backgroundColor: '#eee' }}
+            scrollEventThrottle={1}
+            onScroll={Animated.event(
+              [
+                {
+                  nativeEvent: { contentOffset: { y: this.state.scrollY } },
+                },
+              ],
+              { useNativeDriver: true }
+            )}
           >
-            <SafeAreaView
-              style={styles.bannerContainer}
-              forceInset={{ top: 'always', bottom: 'never' }}
+            <Animated.View
+              style={[
+                styles.backgroundUnderlay,
+                {
+                  transform: [
+                    { scale: backgroundScale },
+                    { translateY: backgroundTranslateY },
+                  ],
+                },
+              ]}
+            />
+            <Animated.View
+              style={{ opacity, transform: [{ scale }, { translateY }] }}
             >
-              <View style={styles.banner}>
-                <Image
-                  source={require('./assets/NavLogo.png')}
-                  style={styles.bannerImage}
-                />
-                <Text style={styles.bannerTitle}>
-                  React Navigation Examples
-                </Text>
-              </View>
-            </SafeAreaView>
-          </Animated.View>
+              <SafeAreaView
+                style={styles.bannerContainer}
+                forceInset={{ top: 'always', bottom: 'never' }}
+              >
+                <View style={styles.banner}>
+                  <Image
+                    source={require('./assets/NavLogo.png')}
+                    style={styles.bannerImage}
+                  />
+                  <Text style={styles.bannerTitle}>
+                    React Navigation Examples
+                  </Text>
+                </View>
+              </SafeAreaView>
+            </Animated.View>
 
-          <SafeAreaView forceInset={{ bottom: 'always', horizontal: 'never' }}>
-            <View style={{ backgroundColor: '#fff' }}>
-              {Object.keys(ExampleRoutes).map((routeName: string) => (
-                <TouchableOpacity
-                  key={routeName}
-                  onPress={() => {
-                    let route = ExampleRoutes[routeName];
-                    if (route.screen || route.path || route.params) {
-                      const { path, params, screen } = route;
-                      const { router } = screen;
-                      const action =
-                        path && router.getActionForPathAndParams(path, params);
-                      navigation.navigate(routeName, {}, action);
-                    } else {
-                      navigation.navigate(routeName);
-                    }
-                  }}
-                >
-                  <SafeAreaView
-                    style={styles.itemContainer}
-                    forceInset={{ veritcal: 'never', bottom: 'never' }}
+            <SafeAreaView
+              forceInset={{ top: 'never', bottom: 'always' }}
+              style={{ backgroundColor: '#eee' }}
+            >
+              <View style={{ backgroundColor: '#fff' }}>
+                {Object.keys(ExampleRoutes).map((routeName: string) => (
+                  <RectButton
+                    key={routeName}
+                    underlayColor="#ccc"
+                    activeOpacity={0.3}
+                    onPress={() => {
+                      let route = ExampleRoutes[routeName];
+                      if (route.screen || route.path || route.params) {
+                        const { path, params, screen } = route;
+                        const { router } = screen;
+                        const action =
+                          path &&
+                          router.getActionForPathAndParams(path, params);
+                        navigation.navigate(routeName, {}, action);
+                      } else {
+                        navigation.navigate(routeName);
+                      }
+                    }}
                   >
                     <View style={styles.item}>
                       <Text style={styles.title}>
@@ -306,12 +320,12 @@ class MainScreen extends React.Component<any, State> {
                         {ExampleInfo[routeName].description}
                       </Text>
                     </View>
-                  </SafeAreaView>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </SafeAreaView>
-        </Animated.ScrollView>
+                  </RectButton>
+                ))}
+              </View>
+            </SafeAreaView>
+          </Animated.ScrollView>
+        </NativeViewGestureHandler>
         <StatusBar barStyle="light-content" />
         <Animated.View
           style={[styles.statusBarUnderlay, { opacity: underlayOpacity }]}
@@ -321,34 +335,37 @@ class MainScreen extends React.Component<any, State> {
   }
 }
 
-const AppNavigator = createStackNavigator(
-  {
-    ...ExampleRoutes,
-    Index: {
-      screen: MainScreen,
+const AppNavigator = createAppContainer(
+  createStackNavigator(
+    {
+      ...ExampleRoutes,
+      Index: {
+        screen: MainScreen,
+      },
     },
-  },
-  {
-    initialRouteName: 'Index',
-    headerMode: 'none',
+    {
+      initialRouteName: 'Index',
+      headerMode: 'none',
 
-    /*
-   * Use modal on iOS because the card mode comes from the right,
-   * which conflicts with the drawer example gesture
-   */
-    mode: Platform.OS === 'ios' ? 'modal' : 'card',
-  }
+      /*
+     * Use modal on iOS because the card mode comes from the right,
+     * which conflicts with the drawer example gesture
+     */
+      mode: Platform.OS === 'ios' ? 'modal' : 'card',
+    }
+  )
 );
 
-export default AppNavigator;
+export default class App extends React.Component {
+  render() {
+    return <AppNavigator /* persistenceKey="if-you-want-it" */ />;
+  }
+}
 
 const styles = StyleSheet.create({
   item: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-  },
-  itemContainer: {
-    backgroundColor: '#fff',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#ddd',
   },
